@@ -163,79 +163,118 @@ enum OpMode {iABC, iABx, iAsBx, iAx};  /* basic instruction format */
 /*
 ** grep "ORDER OP" if you change these enums
 */
-
 typedef enum {
 /*----------------------------------------------------------------------
 name		args	description
 ------------------------------------------------------------------------*/
-OP_MOVE,/*	A B	R(A) := R(B)					*/
-OP_LOADK,/*	A Bx	R(A) := Kst(Bx)					*/
-OP_LOADKX,/*	A 	R(A) := Kst(extra arg)				*/
-OP_LOADBOOL,/*	A B C	R(A) := (Bool)B; if (C) pc++			*/
-OP_LOADNIL,/*	A B	R(A), R(A+1), ..., R(A+B) := nil		*/
-OP_GETUPVAL,/*	A B	R(A) := UpValue[B]				*/
+	OP_ADD,/*	A B C	R(A) := RK(B) + RK(C)				*/
+	OP_SUB,/*	A B C	R(A) := RK(B) - RK(C)				*/
+	OP_MUL,/*	A B C	R(A) := RK(B) * RK(C)				*/
+	OP_MOD,/*	A B C	R(A) := RK(B) % RK(C)				*/
+	OP_POW,/*	A B C	R(A) := RK(B) ^ RK(C)				*/
+	OP_DIV,/*	A B C	R(A) := RK(B) / RK(C)				*/
+	OP_IDIV,/*	A B C	R(A) := RK(B) // RK(C)				*/
+	OP_BAND,/*	A B C	R(A) := RK(B) & RK(C)				*/
+	OP_BOR,/*	A B C	R(A) := RK(B) | RK(C)				*/
+	OP_BXOR,/*	A B C	R(A) := RK(B) ~ RK(C)				*/
+	OP_SHL,/*	A B C	R(A) := RK(B) << RK(C)				*/
+	OP_SHR,/*	A B C	R(A) := RK(B) >> RK(C)				*/
+	OP_UNM,/*	A B	R(A) := -R(B)					*/
+	OP_BNOT,/*	A B	R(A) := ~R(B)					*/
+	OP_NOT,/*	A B	R(A) := not R(B)				*/
+	OP_LEN,/*	A B	R(A) := length of R(B)				*/
+	OP_CONCAT,/*	A B C	R(A) := R(B).. ... ..R(C)			*/
+	OP_JMP,/*	A sBx	pc+=sBx; if (A) close all upvalues >= R(A - 1)	*/
+	OP_EQ,/*	A B C	if ((RK(B) == RK(C)) ~= A) then pc++		*/
+	OP_LT,/*	A B C	if ((RK(B) <  RK(C)) ~= A) then pc++		*/
+	OP_LE,/*	A B C	if ((RK(B) <= RK(C)) ~= A) then pc++		*/
+	OP_MOVE,/*	A B	R(A) := R(B)					*/
+	OP_LOADK,/*	A Bx	R(A) := Kst(Bx)					*/
 
-OP_GETTABUP,/*	A B C	R(A) := UpValue[B][RK(C)]			*/
-OP_GETTABLE,/*	A B C	R(A) := R(B)[RK(C)]				*/
+	OP_TFORCALL1,/*	A C	R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));	*/
+	OP_TFORCALL2,/*	A C	R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));	*/
+	OP_GETTABUPM,/*	A B C	R(A) := UpValue[B][RK(C)]			*/
 
-OP_SETTABUP,/*	A B C	UpValue[A][RK(B)] := RK(C)			*/
-OP_SETUPVAL,/*	A B	UpValue[B] := R(A)				*/
-OP_SETTABLE,/*	A B C	R(A)[RK(B)] := RK(C)				*/
-
-OP_NEWTABLE,/*	A B C	R(A) := {} (size = B,C)				*/
-
-OP_SELF,/*	A B C	R(A+1) := R(B); R(A) := R(B)[RK(C)]		*/
-
-OP_ADD,/*	A B C	R(A) := RK(B) + RK(C)				*/
-OP_SUB,/*	A B C	R(A) := RK(B) - RK(C)				*/
-OP_MUL,/*	A B C	R(A) := RK(B) * RK(C)				*/
-OP_MOD,/*	A B C	R(A) := RK(B) % RK(C)				*/
-OP_POW,/*	A B C	R(A) := RK(B) ^ RK(C)				*/
-OP_DIV,/*	A B C	R(A) := RK(B) / RK(C)				*/
-OP_IDIV,/*	A B C	R(A) := RK(B) // RK(C)				*/
-OP_BAND,/*	A B C	R(A) := RK(B) & RK(C)				*/
-OP_BOR,/*	A B C	R(A) := RK(B) | RK(C)				*/
-OP_BXOR,/*	A B C	R(A) := RK(B) ~ RK(C)				*/
-OP_SHL,/*	A B C	R(A) := RK(B) << RK(C)				*/
-OP_SHR,/*	A B C	R(A) := RK(B) >> RK(C)				*/
-OP_UNM,/*	A B	R(A) := -R(B)					*/
-OP_BNOT,/*	A B	R(A) := ~R(B)					*/
-OP_NOT,/*	A B	R(A) := not R(B)				*/
-OP_LEN,/*	A B	R(A) := length of R(B)				*/
-
-OP_CONCAT,/*	A B C	R(A) := R(B).. ... ..R(C)			*/
-
-OP_JMP,/*	A sBx	pc+=sBx; if (A) close all upvalues >= R(A - 1)	*/
-OP_EQ,/*	A B C	if ((RK(B) == RK(C)) ~= A) then pc++		*/
-OP_LT,/*	A B C	if ((RK(B) <  RK(C)) ~= A) then pc++		*/
-OP_LE,/*	A B C	if ((RK(B) <= RK(C)) ~= A) then pc++		*/
-
-OP_TEST,/*	A C	if not (R(A) <=> C) then pc++			*/
-OP_TESTSET,/*	A B C	if (R(B) <=> C) then R(A) := R(B) else pc++	*/
-
-OP_CALL,/*	A B C	R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1)) */
-OP_TAILCALL,/*	A B C	return R(A)(R(A+1), ... ,R(A+B-1))		*/
-OP_RETURN,/*	A B	return R(A), ... ,R(A+B-2)	(see note)	*/
-
-OP_FORLOOP,/*	A sBx	R(A)+=R(A+2);
-			if R(A) <?= R(A+1) then { pc+=sBx; R(A+3)=R(A) }*/
-OP_FORPREP,/*	A sBx	R(A)-=R(A+2); pc+=sBx				*/
-
-OP_TFORCALL,/*	A C	R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));	*/
-OP_TFORLOOP,/*	A sBx	if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx }*/
-
-OP_SETLIST,/*	A B C	R(A)[(C-1)*FPF+i] := R(A+i), 1 <= i <= B	*/
-
-OP_CLOSURE,/*	A Bx	R(A) := closure(KPROTO[Bx])			*/
-
-OP_VARARG,/*	A B	R(A), R(A+1), ..., R(A+B-2) = vararg		*/
-
-OP_EXTRAARG/*	Ax	extra (larger) argument for previous opcode	*/
+	OP_EXTRAARG,/*	Ax	extra (larger) argument for previous opcode	*/
+	OP_LOADBOOL,/*	A B C	R(A) := (Bool)B; if (C) pc++			*/
+	OP_RETURN,/*	A B	return R(A), ... ,R(A+B-2)	(see note)	*/
+	OP_GETUPVAL,/*	A B	R(A) := UpValue[B]				*/
+	OP_SETLIST,/*	A B C	R(A)[(C-1)*FPF+i] := R(A+i), 1 <= i <= B	*/
+	OP_LOADKX,/*	A 	R(A) := Kst(extra arg)				*/
+	OP_SELF,/*	A B C	R(A+1) := R(B); R(A) := R(B)[RK(C)]		*/
+	OP_FORLOOP,/*	A sBx	R(A)+=R(A+2); if R(A) <?= R(A+1) then { pc+=sBx; R(A+3)=R(A) }*/
+	OP_SETTABLE,/*	A B C	R(A)[RK(B)] := RK(C)				*/
+	OP_TAILCALL,/*	A B C	return R(A)(R(A+1), ... ,R(A+B-1))		*/
+	OP_TFORLOOP,/*	A sBx	if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx }*/
+	OP_SETTABUP,/*	A B C	UpValue[A][RK(B)] := RK(C)			*/
+	OP_TESTSET,/*	A B C	if (R(B) <=> C) then R(A) := R(B) else pc++	*/
+	OP_GETTABUP,/*	A B C	R(A) := UpValue[B][RK(C)]			*/
+	OP_VARARG,/*	A B	R(A), R(A+1), ..., R(A+B-2) = vararg		*/
+	OP_LOADNIL,/*	A B	R(A), R(A+1), ..., R(A+B) := nil		*/
+	OP_TFORCALL,/*	A C	R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));	*/
+	OP_SETUPVAL,/*	A B	UpValue[B] := R(A)				*/
+	OP_GETTABLE,/*	A B C	R(A) := R(B)[RK(C)]				*/
+	OP_FORPREP,/*	A sBx	R(A)-=R(A+2); pc+=sBx				*/
+	OP_NEWTABLE,/*	A B C	R(A) := {} (size = B,C)				*/
+	OP_CALL,/*	A B C	R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1)) */
+	OP_CLOSURE,/*	A Bx	R(A) := closure(KPROTO[Bx])			*/
+	OP_TEST,/*	A C	if not (R(A) <=> C) then pc++			*/
 } OpCode;
 
 
-#define NUM_OPCODES	(cast(int, OP_EXTRAARG) + 1)
+#define NUM_OPCODES	(cast(int, OP_TEST) + 1)
 
+typedef enum {
+	STOCK_OP_MOVE,/*	A B	R(A) := R(B)					*/
+	STOCK_OP_LOADK,/*	A Bx	R(A) := Kst(Bx)					*/
+	STOCK_OP_LOADKX,/*	A 	R(A) := Kst(extra arg)				*/
+	STOCK_OP_LOADBOOL,/*	A B C	R(A) := (Bool)B; if (C) pc++			*/
+	STOCK_OP_LOADNIL,/*	A B	R(A), R(A+1), ..., R(A+B) := nil		*/
+	STOCK_OP_GETUPVAL,/*	A B	R(A) := UpValue[B]				*/
+	STOCK_OP_GETTABUP,/*	A B C	R(A) := UpValue[B][RK(C)]			*/
+	STOCK_OP_GETTABLE,/*	A B C	R(A) := R(B)[RK(C)]				*/
+	STOCK_OP_SETTABUP,/*	A B C	UpValue[A][RK(B)] := RK(C)			*/
+	STOCK_OP_SETUPVAL,/*	A B	UpValue[B] := R(A)				*/
+	STOCK_OP_SETTABLE,/*	A B C	R(A)[RK(B)] := RK(C)				*/
+	STOCK_OP_NEWTABLE,/*	A B C	R(A) := {} (size = B,C)				*/
+	STOCK_OP_SELF,/*	A B C	R(A+1) := R(B); R(A) := R(B)[RK(C)]		*/
+	STOCK_OP_ADD,/*	A B C	R(A) := RK(B) + RK(C)				*/
+	STOCK_OP_SUB,/*	A B C	R(A) := RK(B) - RK(C)				*/
+	STOCK_OP_MUL,/*	A B C	R(A) := RK(B) * RK(C)				*/
+	STOCK_OP_MOD,/*	A B C	R(A) := RK(B) % RK(C)				*/
+	STOCK_OP_POW,/*	A B C	R(A) := RK(B) ^ RK(C)				*/
+	STOCK_OP_DIV,/*	A B C	R(A) := RK(B) / RK(C)				*/
+	STOCK_OP_IDIV,/*	A B C	R(A) := RK(B) // RK(C)				*/
+	STOCK_OP_BAND,/*	A B C	R(A) := RK(B) & RK(C)				*/
+	STOCK_OP_BOR,/*	A B C	R(A) := RK(B) | RK(C)				*/
+	STOCK_OP_BXOR,/*	A B C	R(A) := RK(B) ~ RK(C)				*/
+	STOCK_OP_SHL,/*	A B C	R(A) := RK(B) << RK(C)				*/
+	STOCK_OP_SHR,/*	A B C	R(A) := RK(B) >> RK(C)				*/
+	STOCK_OP_UNM,/*	A B	R(A) := -R(B)					*/
+	STOCK_OP_BNOT,/*	A B	R(A) := ~R(B)					*/
+	STOCK_OP_NOT,/*	A B	R(A) := not R(B)				*/
+	STOCK_OP_LEN,/*	A B	R(A) := length of R(B)				*/
+	STOCK_OP_CONCAT,/*	A B C	R(A) := R(B).. ... ..R(C)			*/
+	STOCK_OP_JMP,/*	A sBx	pc+=sBx; if (A) close all upvalues >= R(A - 1)	*/
+	STOCK_OP_EQ,/*	A B C	if ((RK(B) == RK(C)) ~= A) then pc++		*/
+	STOCK_OP_LT,/*	A B C	if ((RK(B) <  RK(C)) ~= A) then pc++		*/
+	STOCK_OP_LE,/*	A B C	if ((RK(B) <= RK(C)) ~= A) then pc++		*/
+	STOCK_OP_TEST,/*	A C	if not (R(A) <=> C) then pc++			*/
+	STOCK_OP_TESTSET,/*	A B C	if (R(B) <=> C) then R(A) := R(B) else pc++	*/
+	STOCK_OP_CALL,/*	A B C	R(A), ... ,R(A+C-2) := R(A)(R(A+1), ... ,R(A+B-1)) */
+	STOCK_OP_TAILCALL,/*	A B C	return R(A)(R(A+1), ... ,R(A+B-1))		*/
+	STOCK_OP_RETURN,/*	A B	return R(A), ... ,R(A+B-2)	(see note)	*/
+	STOCK_OP_FORLOOP,/*	A sBx	R(A)+=R(A+2); if R(A) <?= R(A+1) then { pc+=sBx; R(A+3)=R(A) }*/
+	STOCK_OP_FORPREP,/*	A sBx	R(A)-=R(A+2); pc+=sBx				*/
+	STOCK_OP_TFORCALL,/*	A C	R(A+3), ... ,R(A+2+C) := R(A)(R(A+1), R(A+2));	*/
+	STOCK_OP_TFORLOOP,/*	A sBx	if R(A+1) ~= nil then { R(A)=R(A+1); pc += sBx }*/
+	STOCK_OP_SETLIST,/*	A B C	R(A)[(C-1)*FPF+i] := R(A+i), 1 <= i <= B	*/
+	STOCK_OP_CLOSURE,/*	A Bx	R(A) := closure(KPROTO[Bx])			*/
+	STOCK_OP_VARARG,/*	A B	R(A), R(A+1), ..., R(A+B-2) = vararg		*/
+	STOCK_OP_EXTRAARG/*	Ax	extra (larger) argument for previous opcode	*/
+} OpCodeStock;
+
+#define NUM_OPCODES_STOCK	(cast(int, STOCK_OP_EXTRAARG) + 1)
 
 
 /*===========================================================================
@@ -288,7 +327,7 @@ LUAI_DDEC const lu_byte luaP_opmodes[NUM_OPCODES];
 
 
 LUAI_DDEC const char *const luaP_opnames[NUM_OPCODES+1];  /* opcode names */
-
+LUAI_DDEF const OpCodeStock OpCodeMapping[NUM_OPCODES];
 
 /* number of list items to accumulate before a SETLIST instruction */
 #define LFIELDS_PER_FLUSH	50

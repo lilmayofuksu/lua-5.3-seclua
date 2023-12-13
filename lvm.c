@@ -663,7 +663,7 @@ void luaV_finishOp (lua_State *L) {
     case OP_BAND: case OP_BOR: case OP_BXOR: case OP_SHL: case OP_SHR:
     case OP_MOD: case OP_POW:
     case OP_UNM: case OP_BNOT: case OP_LEN:
-    case OP_GETTABUP: case OP_GETTABLE: case OP_SELF: {
+    case OP_GETTABUP: case OP_GETTABUPM: case OP_GETTABLE: case OP_SELF: {
       setobjs2s(L, base + GETARG_A(inst), --L->top);
       break;
     }
@@ -694,7 +694,9 @@ void luaV_finishOp (lua_State *L) {
       L->top = ci->top;  /* restore top */
       break;
     }
-    case OP_TFORCALL: {
+    case OP_TFORCALL:
+    case OP_TFORCALL1: 
+    case OP_TFORCALL2: {
       lua_assert(GET_OPCODE(*ci->u.l.savedpc) == OP_TFORLOOP);
       L->top = ci->top;  /* correct top */
       break;
@@ -833,7 +835,8 @@ void luaV_execute (lua_State *L) {
         setobj2s(L, ra, cl->upvals[b]->v);
         vmbreak;
       }
-      vmcase(OP_GETTABUP) {
+      vmcase(OP_GETTABUP)
+      vmcase(OP_GETTABUPM) {
         TValue *upval = cl->upvals[GETARG_B(i)]->v;
         TValue *rc = RKC(i);
         gettableProtected(L, upval, rc, ra);
@@ -1251,6 +1254,12 @@ void luaV_execute (lua_State *L) {
         ra = RA(i);
         lua_assert(GET_OPCODE(i) == OP_TFORLOOP);
         goto l_tforloop;
+      }
+      vmcase(OP_TFORCALL2) {
+        L->top = ci->top;
+        i = *(ci->u.l.savedpc++);  /* go to next instruction */
+        ra = RA(i);
+        vmbreak;
       }
       vmcase(OP_TFORLOOP) {
         l_tforloop:

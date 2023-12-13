@@ -17,6 +17,7 @@
 #include "lobject.h"
 #include "lstate.h"
 #include "lundump.h"
+#include "lopcodes.h"
 
 
 typedef struct {
@@ -88,8 +89,45 @@ static void DumpString (const TString *s, DumpState *D) {
 
 
 static void DumpCode (const Proto *f, DumpState *D) {
+  /*
+  int skip = 0;
+  for (int i = 0; i < f->sizecode; i++) {
+      OpCode inst = GET_OPCODE(f->code[i]);
+      if (inst == OP_TFORCALL2)
+          skip++;
+  }
+
+  DumpInt(f->sizecode - skip, D);
+
+  for (int i = 0; i < f->sizecode; i++) {
+    Instruction inst = f->code[i];
+
+    OpCode op = GET_OPCODE(f->code[i]);
+    if (op == OP_TFORCALL2)
+        continue; // We already dumped it.
+
+    OpCodeStock dst = OpCodeMapping[op];
+    SET_OPCODE(inst, dst);
+    DumpVar(inst, D);
+  }
+  */
   DumpInt(f->sizecode, D);
-  DumpVector(f->code, f->sizecode, D);
+
+  for (int i = 0; i < f->sizecode; i++) {
+    Instruction inst = f->code[i];
+
+    OpCode op = GET_OPCODE(f->code[i]);
+    if (op == OP_TFORCALL2) { // this works well as a NOP lol
+        //continue;
+        //SET_OPCODE(inst, 99);
+        //DumpVar(inst, D);
+        //continue;
+    }
+
+    OpCodeStock dst = OpCodeMapping[op];
+    SET_OPCODE(inst, dst);
+    DumpVar(inst, D);
+  }
 }
 
 
@@ -182,7 +220,7 @@ static void DumpFunction (const Proto *f, TString *psource, DumpState *D) {
 
 
 static void DumpHeader (DumpState *D) {
-  DumpLiteral(LUA_SIGNATURE, D);
+  DumpLiteral(LUA_SIGNATURE_STOCK, D);
   DumpByte(LUAC_VERSION, D);
   DumpByte(LUAC_FORMAT, D);
   DumpLiteral(LUAC_DATA, D);
@@ -191,8 +229,8 @@ static void DumpHeader (DumpState *D) {
   DumpByte(sizeof(Instruction), D);
   DumpByte(sizeof(lua_Integer), D);
   DumpByte(sizeof(lua_Number), D);
-  DumpInteger(LUAC_INT, D);
-  DumpNumber(LUAC_NUM, D);
+  DumpInteger(LUAC_INT_STOCK, D);
+  DumpNumber(LUAC_NUM_STOCK, D);
 }
 
 

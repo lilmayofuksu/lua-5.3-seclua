@@ -397,7 +397,7 @@ static int findsetreg (Proto *p, int lastpc, int reg) {
           setreg = filterpc(pc, jmptarget);
         break;
       }
-      case OP_TFORCALL: {
+      case OP_TFORCALL: case OP_TFORCALL1: OP_TFORCALL2: {
         if (reg >= a + 2)  /* affect all regs above its base */
           setreg = filterpc(pc, jmptarget);
         break;
@@ -447,6 +447,7 @@ static const char *getobjname (Proto *p, int lastpc, int reg,
         break;
       }
       case OP_GETTABUP:
+      case OP_GETTABUPM:
       case OP_GETTABLE: {
         int k = GETARG_C(i);  /* key index */
         int t = GETARG_B(i);  /* table index */
@@ -507,7 +508,7 @@ static const char *funcnamefromcode (lua_State *L, CallInfo *ci,
        return "for iterator";
     }
     /* other instructions can do calls through metamethods */
-    case OP_SELF: case OP_GETTABUP: case OP_GETTABLE:
+    case OP_SELF: case OP_GETTABUP: case OP_GETTABLE: case OP_GETTABUPM:
       tm = TM_INDEX;
       break;
     case OP_SETTABUP: case OP_SETTABLE:

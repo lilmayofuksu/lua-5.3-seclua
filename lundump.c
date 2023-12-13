@@ -33,6 +33,7 @@ typedef struct {
   lua_State *L;
   ZIO *Z;
   const char *name;
+  unsigned int xor_key;
 } LoadState;
 
 
@@ -60,16 +61,21 @@ static void LoadBlock (LoadState *S, void *b, size_t size) {
 static lu_byte LoadByte (LoadState *S) {
   lu_byte x;
   LoadVar(S, x);
-  return x;
+  return S->xor_key ^ x;
 }
 
 
 static int LoadInt (LoadState *S) {
   int x;
   LoadVar(S, x);
-  return x;
+  return ((S->xor_key >> 16) | (S->xor_key << 16)) ^ x;
 }
 
+static int LoadIntNonXor (LoadState *S) {
+  int x;
+  LoadVar(S, x);
+  return x;
+}
 
 static lua_Number LoadNumber (LoadState *S) {
   lua_Number x;
@@ -81,9 +87,32 @@ static lua_Number LoadNumber (LoadState *S) {
 static lua_Integer LoadInteger (LoadState *S) {
   lua_Integer x;
   LoadVar(S, x);
-  return x;
+  char xkey[8];
+  xkey[0] = ((char*)&S->xor_key)[2];
+  xkey[1] = ((char*)&S->xor_key)[3];
+
+  xkey[2] = ((char*)&S->xor_key)[0];
+  xkey[3] = ((char*)&S->xor_key)[1];
+
+  xkey[4] = ((char*)&S->xor_key)[0];
+  xkey[5] = ((char*)&S->xor_key)[1];
+  xkey[6] = ((char*)&S->xor_key)[2];
+  xkey[7] = ((char*)&S->xor_key)[3];
+
+
+  return *(unsigned long long*)(xkey) ^ x;
 }
 
+static char* DecryptString(char* buf, size_t size) {
+  if ( size ) {
+    for ( int i = size - 1; i > 0; --i )
+      buf[i] ^= buf[i - 1];
+    *buf ^= size;
+  }
+  return buf;
+}
+
+#include <stdio.h>
 
 static TString *LoadString (LoadState *S) {
   size_t size = LoadByte(S);
@@ -94,11 +123,13 @@ static TString *LoadString (LoadState *S) {
   else if (--size <= LUAI_MAXSHORTLEN) {  /* short string? */
     char buff[LUAI_MAXSHORTLEN];
     LoadVector(S, buff, size);
+    DecryptString(buff, size);
     return luaS_newlstr(S->L, buff, size);
   }
   else {  /* long string */
     TString *ts = luaS_createlngstrobj(S->L, size);
     LoadVector(S, getstr(ts), size);  /* load directly in final place */
+    DecryptString(getstr(ts), size);
     return ts;
   }
 }
@@ -109,6 +140,10 @@ static void LoadCode (LoadState *S, Proto *f) {
   f->code = luaM_newvector(S->L, n, Instruction);
   f->sizecode = n;
   LoadVector(S, f->code, n);
+  //char* p = f->code;
+      //*(unsigned int*)&p[4 * i] ^= S->xor_key;
+  for (int i = 0; i < n; i++)
+      f->code[i] ^= S->xor_key;
 }
 
 
@@ -208,8 +243,8 @@ static void LoadFunction (LoadState *S, Proto *f, TString *psource) {
   f->numparams = LoadByte(S);
   f->is_vararg = LoadByte(S);
   f->maxstacksize = LoadByte(S);
-  LoadCode(S, f);
   LoadConstants(S, f);
+  LoadCode(S, f);
   LoadUpvalues(S, f);
   LoadProtos(S, f);
   LoadDebug(S, f);
@@ -235,20 +270,24 @@ static void fchecksize (LoadState *S, size_t size, const char *tname) {
 
 static void checkHeader (LoadState *S) {
   checkliteral(S, LUA_SIGNATURE + 1, "not a");  /* 1st char already checked */
+  /*
   if (LoadByte(S) != LUAC_VERSION)
     error(S, "version mismatch in");
   if (LoadByte(S) != LUAC_FORMAT)
     error(S, "format mismatch in");
   checkliteral(S, LUAC_DATA, "corrupted");
+  */
+  LoadInt(S);
+  S->xor_key = LoadIntNonXor(S);
   checksize(S, int);
   checksize(S, size_t);
   checksize(S, Instruction);
   checksize(S, lua_Integer);
   checksize(S, lua_Number);
+  if (LoadNumber(S) != LUAC_NUM)
+      error(S, "float format mismatch in");
   if (LoadInteger(S) != LUAC_INT)
     error(S, "endianness mismatch in");
-  if (LoadNumber(S) != LUAC_NUM)
-    error(S, "float format mismatch in");
 }
 
 
